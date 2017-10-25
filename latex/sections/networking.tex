@@ -1,0 +1,264 @@
+\section{Networking}
+
+\begin{frame}
+  \frametitle{It's almost as simple}
+  \begin{itemize}
+    \item{OOTB Support for ICMP, TCP, UDP, IPv4/6, Multicast}\pause{}
+    \item{Includes support for resolving addresses}\pause{}
+    \item{Also support TLS through OpenSSL}\pause{}
+    \item{``Byte-based'' and ``Condition-based''}
+  \end{itemize}
+\end{frame}
+
+\begin{frame}
+  \frametitle{An echo server with:}
+  \begin{itemize}
+    \item{N connections}\pause{}
+    \item{Output queueing}\pause{}
+    \item{Automatic connection lifetime}
+  \end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+  \frametitle{The connection class (head)}
+  \begin{minted}[fontsize=\footnotesize{}]{cpp}
+  struct connection : std::enable_shared_from_this<connection> {
+    // ... members
+  };
+  \end{minted}
+\end{frame}
+
+\begin{frame}[fragile]
+  \frametitle{The connection class (data members)}
+  \begin{minted}[fontsize=\footnotesize{}]{cpp}
+  struct connection : ... {
+
+  private:
+    asio::ip::tcp::socket m_sock;
+    asio::strand m_strand;
+    std::array<char, 1024> m_buff{};
+    std::deque<std::string> m_out{};
+  };
+  \end{minted}
+\end{frame}
+
+\begin{frame}[fragile]
+  \frametitle{The connection class (ctor)}
+  \begin{minted}[fontsize=\footnotesize{}]{cpp}
+  struct connection : ... {
+
+    connection(asio::ip::tcp::socket sock)
+      : m_sock{std::move(sock)}
+      , m_strand{m_sock.get_io_service()} {
+
+    }
+
+  };
+  \end{minted}
+\end{frame}
+
+\begin{frame}[fragile]
+  \frametitle{The connection class (starting communication)}
+  \begin{minted}[fontsize=\footnotesize{}]{cpp}
+  struct connection : ... {
+
+    void start() {
+      do_read();
+    }
+
+  };
+  \end{minted}
+\end{frame}
+
+\begin{frame}[fragile]
+  \frametitle{The connection class (reading data)}
+  \begin{minted}[fontsize=\footnotesize{}]{cpp}
+  struct connection : ... {
+
+  private:
+    void do_read() {
+      m_sock.async_read_some(asio::buffer(m_buff),
+        [&, self = shared_from_this()](auto error, auto read) {
+        if(!error) {
+          auto begin = m_buff.data();
+          auto end = begin + read;
+          m_strand.post([&, data=std::string{begin, end}]{
+            write(data);
+          });
+        do_read();
+        }
+      });
+    }
+  };
+  \end{minted}
+\end{frame}
+
+\begin{frame}[fragile]
+  \frametitle{The connection class (writing data part 1)}
+  \begin{minted}[fontsize=\footnotesize{}]{cpp}
+  struct connection : ... {
+
+  private:
+    void write(std::string data) {
+      m_out.push_back(data);
+
+      if(m_out.size() < 2) {
+        do_write();
+      }
+    }
+  };
+  \end{minted}
+\end{frame}
+
+\begin{frame}[fragile]
+  \frametitle{The connection class (writing data part 2)}
+  \begin{minted}[fontsize=\footnotesize{}]{cpp}
+  struct connection : ... {
+
+  private:
+    void do_write() {
+      asio::async_write(m_sock, asio::buffer(m_out.front()),
+        m_strand.wrap([&, self = shared_from_this()](auto error,
+                                                    auto written) {
+        m_out.pop_front();
+
+        if(!error) {
+          if(!m_out.empty()) {
+            do_write();
+          }
+        }
+      }));
+    }
+  };
+  \end{minted}
+\end{frame}
+
+\begin{frame}
+  \frametitle{Review of the connection class}
+  Connections:\pause{}
+  \begin{itemize}
+    \item{keep themselves alive}\pause{}
+    \item{have a single input buffer}\pause{}
+    \item{have an output queue}
+  \end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+  \frametitle{The server class (data members)}
+  \begin{minted}[fontsize=\footnotesize{}]{cpp}
+  struct server {
+
+  private:
+     asio::ip::tcp::acceptor m_acceptor;
+     asio::ip::tcp::socket m_sock;
+  };
+  \end{minted}
+\end{frame}
+
+\begin{frame}[fragile]
+  \frametitle{The server class (creation)}
+  \begin{minted}[fontsize=\footnotesize{}]{cpp}
+  struct server {
+
+  server(asio::io_service & service)
+    : m_acceptor{service,
+                 asio::ip::tcp::endpoint{
+                   asio::ip::tcp::v4(),
+                   4321}}
+    , m_sock{service} {}
+
+  };
+  \end{minted}
+\end{frame}
+
+\begin{frame}[fragile]
+  \frametitle{The server class (starting)}
+  \begin{minted}[fontsize=\footnotesize{}]{cpp}
+  struct server {
+
+  void start() {
+    do_accept();
+  }
+
+  };
+  \end{minted}
+\end{frame}
+
+\begin{frame}[fragile]
+  \frametitle{The server class (accepting connections)}
+  \begin{minted}[fontsize=\footnotesize{}]{cpp}
+  struct server {
+
+  private:
+    void do_accept() {
+      m_acceptor.async_accept(m_sock, [&](auto error){
+        if(!error) {
+          auto conn = std::make_shared<connection>(
+            std::move(m_sock)
+          );
+          conn->start();
+          do_accept();
+        }
+      });
+    }
+  };
+  \end{minted}
+\end{frame}
+
+\begin{frame}
+  \frametitle{Review of the server class}
+  Our server:\pause{}
+  \begin{itemize}
+    \item{accepts new connections}\pause{}
+    \item{creates \mintinline{cpp}{connection} objects}\pause{}
+    \item{does not care about the connections}
+  \end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+  \frametitle{Glueing it all together}
+  \begin{minted}[fontsize=\footnotesize{}]{cpp}
+    auto && service = asio::io_service{};
+    auto && server = ::server{service};
+
+    server.start();
+  \end{minted}
+\end{frame}
+
+\begin{frame}[fragile]
+  \frametitle{Glueing it all together (contd.)}
+  \begin{minted}[fontsize=\footnotesize{}]{cpp}
+    service.run();
+  \end{minted}
+\end{frame}
+
+\begin{frame}[fragile]
+  \frametitle{Glueing it all together (contd.)}
+  \begin{minted}[fontsize=\footnotesize{}]{cpp}
+    auto const cpus = std::thread::hardware_concurrency();
+    auto pool = std::vector<std::future<void>>{cpus};
+
+    for(auto & future : pool) {
+      future = std::async(std::launch::async, [&]{
+        service.run();
+      });
+    }
+  \end{minted}
+\end{frame}
+
+\begin{frame}
+  \begin{center}
+    \Huge{Demo Time!}
+  \end{center}
+\end{frame}
+
+\begin{frame}
+  \frametitle{There is more}
+  \begin{itemize}
+    \item{stream buffers}\pause{}
+    \item{conditions}\pause{}
+    \item{TLS}\pause{}
+    \item{Name resolution}\pause{}
+    \item{Synchronous I/O}
+  \end{itemize}
+\end{frame}

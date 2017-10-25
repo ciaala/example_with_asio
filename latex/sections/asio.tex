@@ -1,0 +1,53 @@
+\section{ASIO 101}
+
+\begin{frame}
+  \frametitle{Overview}
+  \begin{itemize}
+    \item{Created by Christopher Kohlhoff in 2003}\pause{}
+    \item{Part of the Boost libraries since 2008}\pause{}
+    \item{Available on Linux, BSD, macOS, Windows, \ldots{}}\pause{}
+    \item{Based on the Proactor pattern}\pause{}
+    \item{NOT only for asynchronous I/O}
+  \end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+  \frametitle{ASIO Hello World}
+  \begin{minted}[fontsize=\footnotesize{},autogobble]{cpp}
+  #include <asio.hpp>
+  #include <chrono>
+  #include <iostream>
+
+  int main() {
+    auto && service = asio::io_service{};
+    auto && timer = asio::steady_timer{service};
+
+    timer.expires_from_now(std::chrono::seconds{1});
+    timer.async_wait([](auto error){
+      std::cout << "timer fired!\n";
+    });
+
+  service.run();
+  }
+  \end{minted}
+\end{frame}
+
+\begin{frame}[fragile]
+  \frametitle{Disecting the Example}
+  \begin{itemize}
+    \item{Our Proactor}
+    \item{\mintinline{cpp}{service = asio::io_service{};}}\pause{}
+    \item{The I/O object}
+    \item{\mintinline{cpp}{timer = asio::steady_timer{service};}}\pause{}
+    \item{Our asynchronous operation}
+    \item{\mintinline{cpp}{timer.async_wait(...)}}\pause{}
+    \item{Our completion handler}
+    \item{\mintinline{cpp}{[](auto error){ ... }}}
+  \end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+  \begin{centering}
+    \Large{This is the basic anatomy of an ASIO program}
+  \end{centering}
+\end{frame}

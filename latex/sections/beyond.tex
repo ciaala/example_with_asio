@@ -1,0 +1,77 @@
+\section{Beyond Networking}
+
+\begin{frame}
+  \frametitle{It's More Than Networking}\pause{}
+  \begin{itemize}
+    \item{Signal handling}\pause{}
+    \item{General worker pool}\pause{}
+    \item{Stream I/O}\pause{}
+    \item{Serial ports}\pause{}
+    \item{Timers}\pause{}
+    \item{File I/O (Windows)}
+  \end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+  \frametitle{Signal handling}
+  \begin{minted}[fontsize=\footnotesize{}]{cpp}
+  auto && signals = asio::signal_set(service, SIGINT);
+  signals.add(SIGINT);
+  signals.async_wait([&](auto error, auto signal){
+    if(!error && !service.stopped()) {
+      std::cout << "Received SIGINT. Terminating. " << '\n';
+      service.stop();
+    }
+  });
+  \end{minted}
+\end{frame}
+
+\begin{frame}[fragile]
+  \frametitle{Worker Pool (posting the work)}
+  \begin{minted}[fontsize=\footnotesize{}]{cpp}
+    service.post([&]{
+      prove_p_equals_np();
+    });
+  \end{minted}
+\end{frame}
+
+\begin{frame}[fragile]
+  \frametitle{Worker Pool (posting the work)}
+  \begin{minted}[fontsize=\footnotesize{}]{cpp}
+    service.post([&]{
+      factor_large_rsa_key();
+    });
+  \end{minted}
+\end{frame}
+
+\begin{frame}[fragile]
+  \frametitle{Worker Pool (posting the work)}
+  \begin{minted}[fontsize=\footnotesize{}]{cpp}
+    service.post([&]{
+      invent_time_machine();
+    });
+  \end{minted}
+\end{frame}
+
+\begin{frame}[fragile]
+  \frametitle{Worker Pool (posting the work)}
+  \begin{minted}[fontsize=\footnotesize{}]{cpp}
+    service.post([&]{
+      std::do_stuff();
+    });
+  \end{minted}
+\end{frame}
+
+\begin{frame}[fragile]
+  \frametitle{Worker Pool (running the workers)}
+  \begin{minted}[fontsize=\footnotesize{}]{cpp}
+    auto const cpus = std::thread::hardware_concurrency();
+    auto pool = std::vector<std::future<void>>{cpus};
+
+    for(auto & future : pool) {
+      future = std::async(std::launch::async, [&]{
+        service.run();
+      });
+    }
+  \end{minted}
+\end{frame}

@@ -1,0 +1,45 @@
+\documentclass{beamer}
+\usepackage[outputdir=.build]{minted}
+\usemintedstyle{cevelop}
+\usepackage{booktabs}
+\usepackage{graphicx}
+\graphicspath{{../images/}}
+\usepackage{qtree}
+\newcommand{\qlabelhook}{\normalsize}
+\newcommand{\qleafhook}{\small\itshape}
+\usetheme{metropolis}
+
+\title{Of Owls and IO Objects}
+\author{Felix Morgner}
+\subtitle{OR network programming with ASIO}
+\date{Oct 25, 2017}
+\subject{C++ Meetup Zürich}
+\institute[%
+  University of Applied Sciences Rapperswil%
+]{Institute for Software\\University of Applied Sciences Rapperswil}
+
+\begin{document}
+\maketitle
+
+\input{sections/intro}
+\input{sections/pattern}
+\input{sections/asio}
+\input{sections/networking}
+\input{sections/beyond}
+
+\section{Summary and Q\&A}
+\begin{frame}
+  \frametitle{Conclusion}
+  \begin{itemize}
+    \item{ASIO is not a framework!}\pause{}
+    \item{It is not that scary}\pause{}
+    \item{Provides rich I/O and event handling}\pause{}
+    \item{Parts of it will be standard C++}
+  \end{itemize}
+\end{frame}
+\begin{frame}
+  \begin{center}
+    \Huge{Questions?}
+  \end{center}
+\end{frame}
+\end{document}
