@@ -36,8 +36,7 @@ struct server
     asio::ip::tcp::socket m_sock;
   };
 
-int main()
-  {
+int main() {
   auto && service = asio::io_service{};
   auto && server = ::server{service};
 

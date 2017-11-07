@@ -39,7 +39,7 @@ struct connection
           m_strand.post([&, data=std::string{begin, end}]{
             write(data);
           });
-        do_read();
+            do_read();
         }
       });
     }
