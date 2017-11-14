@@ -8,3 +8,5 @@ SET(SOURCE_FILES code/echo.cpp code/connection.h)
 
 add_executable(echo-server ${SOURCE_FILES})
 target_include_directories(echo-server PUBLIC asio-1.10.6/include)
+
+add_executable(check-the-move code/check-the-move.cpp)
